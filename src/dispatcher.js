@@ -1,4 +1,4 @@
-const { escapeRegex } = require('./util');
+const { escapeRegex } = require("./util");
 
 /** Handles parsing messages and running commands from them */
 class CommandDispatcher {
@@ -13,7 +13,7 @@ class CommandDispatcher {
 		 * @type {CommandoClient}
 		 * @readonly
 		 */
-		Object.defineProperty(this, 'client', { value: client });
+		Object.defineProperty(this, "client", { value: client });
 
 		/**
 		 * Registry this dispatcher uses
@@ -79,8 +79,8 @@ class CommandDispatcher {
 	 * });
 	 */
 	addInhibitor(inhibitor) {
-		if(typeof inhibitor !== 'function') throw new TypeError('The inhibitor must be a function.');
-		if(this.inhibitors.has(inhibitor)) return false;
+		if (typeof inhibitor !== "function") throw new TypeError("The inhibitor must be a function.");
+		if (this.inhibitors.has(inhibitor)) return false;
 		this.inhibitors.add(inhibitor);
 		return true;
 	}
@@ -91,7 +91,7 @@ class CommandDispatcher {
 	 * @return {boolean} Whether the removal was successful
 	 */
 	removeInhibitor(inhibitor) {
-		if(typeof inhibitor !== 'function') throw new TypeError('The inhibitor must be a function.');
+		if (typeof inhibitor !== "function") throw new TypeError("The inhibitor must be a function.");
 		return this.inhibitors.delete(inhibitor);
 	}
 
@@ -104,15 +104,15 @@ class CommandDispatcher {
 	 */
 	async handleMessage(message, oldMessage) {
 		/* eslint-disable max-depth */
-		if(!this.shouldHandleMessage(message, oldMessage)) return;
+		if (!this.shouldHandleMessage(message, oldMessage)) return;
 
 		// Parse the message, and get the old result if it exists
 		let cmdMsg, oldCmdMsg;
-		if(oldMessage) {
+		if (oldMessage) {
 			oldCmdMsg = this._results.get(oldMessage.id);
-			if(!oldCmdMsg && !this.client.options.nonCommandEditable) return;
+			if (!oldCmdMsg && !this.client.options.nonCommandEditable) return;
 			cmdMsg = this.parseMessage(message);
-			if(cmdMsg && oldCmdMsg) {
+			if (cmdMsg && oldCmdMsg) {
 				cmdMsg.responses = oldCmdMsg.responses;
 				cmdMsg.responsePositions = oldCmdMsg.responsePositions;
 			}
@@ -122,13 +122,13 @@ class CommandDispatcher {
 
 		// Run the command, or reply with an error
 		let responses;
-		if(cmdMsg) {
+		if (cmdMsg) {
 			const inhibited = this.inhibit(cmdMsg);
 
-			if(!inhibited) {
-				if(cmdMsg.command) {
-					if(!cmdMsg.command.isEnabledIn(message.guild)) {
-						if(!cmdMsg.command.unknown) {
+			if (!inhibited) {
+				if (cmdMsg.command) {
+					if (!cmdMsg.command.isEnabledIn(message.guild)) {
+						if (!cmdMsg.command.unknown) {
 							responses = await cmdMsg.reply(`The \`${cmdMsg.command.name}\` command is disabled.`);
 						} else {
 							/**
@@ -136,16 +136,17 @@ class CommandDispatcher {
 							 * @event CommandoClient#unknownCommand
 							 * @param {CommandoMessage} message - Command message that triggered the command
 							 */
-							this.client.emit('unknownCommand', cmdMsg);
+							this.client.emit("unknownCommand", cmdMsg);
 							responses = undefined;
 						}
-					} else if(!oldMessage || typeof oldCmdMsg !== 'undefined') {
+					} else if (!oldMessage || typeof oldCmdMsg !== "undefined") {
+						if (message.deletable) message.delete();
 						responses = await cmdMsg.run();
-						if(typeof responses === 'undefined') responses = null;
-						if(Array.isArray(responses)) responses = await Promise.all(responses);
+						if (typeof responses === "undefined") responses = null;
+						if (Array.isArray(responses)) responses = await Promise.all(responses);
 					}
 				} else {
-					this.client.emit('unknownCommand', cmdMsg);
+					this.client.emit("unknownCommand", cmdMsg);
 					responses = undefined;
 				}
 			} else {
@@ -153,9 +154,9 @@ class CommandDispatcher {
 			}
 
 			cmdMsg.finalize(responses);
-		} else if(oldCmdMsg) {
+		} else if (oldCmdMsg) {
 			oldCmdMsg.finalize(null);
-			if(!this.client.options.nonCommandEditable) this._results.delete(message.id);
+			if (!this.client.options.nonCommandEditable) this._results.delete(message.id);
 		}
 
 		this.cacheCommandoMessage(message, oldMessage, cmdMsg, responses);
@@ -171,16 +172,16 @@ class CommandDispatcher {
 	 */
 	shouldHandleMessage(message, oldMessage) {
 		// Ignore partial messages
-		if(message.partial) return false;
-
-		if(message.author.bot) return false;
-		else if(message.author.id === this.client.user.id) return false;
+		if (message.partial) return false;
+		// dont return, cause of unittests
+		// if(message.author.bot) return false;
+		else if (message.author.id === this.client.user.id) return false;
 
 		// Ignore messages from users that the bot is already waiting for input from
-		if(this._awaiting.has(message.author.id + message.channel.id)) return false;
+		if (this._awaiting.has(message.author.id + message.channel.id)) return false;
 
 		// Make sure the edit actually changed the message content
-		if(oldMessage && message.content === oldMessage.content) return false;
+		if (oldMessage && message.content === oldMessage.content) return false;
 
 		return true;
 	}
@@ -192,23 +193,23 @@ class CommandDispatcher {
 	 * @private
 	 */
 	inhibit(cmdMsg) {
-		for(const inhibitor of this.inhibitors) {
+		for (const inhibitor of this.inhibitors) {
 			let inhibit = inhibitor(cmdMsg);
-			if(inhibit) {
-				if(typeof inhibit !== 'object') inhibit = { reason: inhibit, response: undefined };
+			if (inhibit) {
+				if (typeof inhibit !== "object") inhibit = { reason: inhibit, response: undefined };
 
-				const valid = typeof inhibit.reason === 'string' && (
-					typeof inhibit.response === 'undefined' ||
-					inhibit.response === null ||
-					inhibit.response instanceof Promise
-				);
-				if(!valid) {
+				const valid =
+					typeof inhibit.reason === "string" &&
+					(typeof inhibit.response === "undefined" ||
+						inhibit.response === null ||
+						inhibit.response instanceof Promise);
+				if (!valid) {
 					throw new TypeError(
 						`Inhibitor "${inhibitor.name}" had an invalid result; must be a string or an Inhibition object.`
 					);
 				}
 
-				this.client.emit('commandBlock', cmdMsg, inhibit.reason, inhibit);
+				this.client.emit("commandBlock", cmdMsg, inhibit.reason, inhibit);
 				return inhibit;
 			}
 		}
@@ -224,12 +225,14 @@ class CommandDispatcher {
 	 * @private
 	 */
 	cacheCommandoMessage(message, oldMessage, cmdMsg, responses) {
-		if(this.client.options.commandEditableDuration <= 0) return;
-		if(!cmdMsg && !this.client.options.nonCommandEditable) return;
-		if(responses !== null) {
+		if (this.client.options.commandEditableDuration <= 0) return;
+		if (!cmdMsg && !this.client.options.nonCommandEditable) return;
+		if (responses !== null) {
 			this._results.set(message.id, cmdMsg);
-			if(!oldMessage) {
-				setTimeout(() => { this._results.delete(message.id); }, this.client.options.commandEditableDuration * 1000);
+			if (!oldMessage) {
+				setTimeout(() => {
+					this._results.delete(message.id);
+				}, this.client.options.commandEditableDuration * 1000);
 			}
 		} else {
 			this._results.delete(message.id);
@@ -244,19 +247,19 @@ class CommandDispatcher {
 	 */
 	parseMessage(message) {
 		// Find the command to run by patterns
-		for(const command of this.registry.commands.values()) {
-			if(!command.patterns) continue;
-			for(const pattern of command.patterns) {
+		for (const command of this.registry.commands.values()) {
+			if (!command.patterns) continue;
+			for (const pattern of command.patterns) {
 				const matches = pattern.exec(message.content);
-				if(matches) return message.initCommand(command, null, matches);
+				if (matches) return message.initCommand(command, null, matches);
 			}
 		}
 
 		// Find the command to run with default command handling
 		const prefix = message.guild ? message.guild.commandPrefix : this.client.commandPrefix;
-		if(!this._commandPatterns[prefix]) this.buildCommandPattern(prefix);
+		if (!this._commandPatterns[prefix]) this.buildCommandPattern(prefix);
 		let cmdMsg = this.matchDefault(message, this._commandPatterns[prefix], 2);
-		if(!cmdMsg && !message.guild) cmdMsg = this.matchDefault(message, /^([^\s]+)/i, 1, true);
+		if (!cmdMsg && !message.guild) cmdMsg = this.matchDefault(message, /^([^\s]+)/i, 1, true);
 		return cmdMsg;
 	}
 
@@ -271,9 +274,9 @@ class CommandDispatcher {
 	 */
 	matchDefault(message, pattern, commandNameIndex = 1, prefixless = false) {
 		const matches = pattern.exec(message.content);
-		if(!matches) return null;
-		const commands = this.registry.findCommands(matches[commandNameIndex], true);
-		if(commands.length !== 1 || !commands[0].defaultHandling) {
+		if (!matches) return null;
+		const commands = this.registry.findCommands(matches[commandNameIndex], true, message);
+		if (commands.length !== 1 || !commands[0].defaultHandling) {
 			return message.initCommand(this.registry.unknownCommand, prefixless ? message.content : matches[1]);
 		}
 		const argString = message.content.substring(matches[1].length + (matches[2] ? matches[2].length : 0));
@@ -288,16 +291,17 @@ class CommandDispatcher {
 	 */
 	buildCommandPattern(prefix) {
 		let pattern;
-		if(prefix) {
+		if (prefix) {
 			const escapedPrefix = escapeRegex(prefix);
 			pattern = new RegExp(
-				`^(<@!?${this.client.user.id}>\\s+(?:${escapedPrefix}\\s*)?|${escapedPrefix}\\s*)([^\\s]+)`, 'i'
+				`^(<@!?${this.client.user.id}>\\s+(?:${escapedPrefix}\\s*)?|${escapedPrefix}\\s*)([^\\s]+)`,
+				"i"
 			);
 		} else {
-			pattern = new RegExp(`(^<@!?${this.client.user.id}>\\s+)([^\\s]+)`, 'i');
+			pattern = new RegExp(`(^<@!?${this.client.user.id}>\\s+)([^\\s]+)`, "i");
 		}
 		this._commandPatterns[prefix] = pattern;
-		this.client.emit('debug', `Built command pattern for prefix "${prefix}": ${pattern}`);
+		this.client.emit("debug", `Built command pattern for prefix "${prefix}": ${pattern}`);
 		return pattern;
 	}
 }

@@ -1,6 +1,6 @@
-const { escapeMarkdown } = require('discord.js');
-const { oneLine, stripIndents } = require('common-tags');
-const ArgumentUnionType = require('../types/union');
+const { escapeMarkdown } = require("discord.js");
+const { oneLine, stripIndents } = require("common-tags");
+const ArgumentUnionType = require("../types/union");
 
 /** A fancy argument */
 class Argument {
@@ -19,7 +19,6 @@ class Argument {
 	 * If type is `string`, this is the minimum length of the string.
 	 * @property {ArgumentDefault} [default] - Default value for the argument (makes the arg optional - cannot be `null`)
 	 * @property {string[]} [oneOf] - An array of values that are allowed to be used
-	 * @property {boolean} [infinite=false] - Whether the argument accepts infinite values
 	 * @property {Function} [validate] - Validator function for the argument (see {@link ArgumentType#validate})
 	 * @property {Function} [parse] - Parser function for the argument (see {@link ArgumentType#parse})
 	 * @property {Function} [isEmpty] - Empty checker for the argument (see {@link ArgumentType#isEmpty})
@@ -73,20 +72,20 @@ class Argument {
 		 * If type is `string`, this is the maximum length of the string.
 		 * @type {?number}
 		 */
-		this.max = typeof info.max !== 'undefined' ? info.max : null;
+		this.max = typeof info.max !== "undefined" ? info.max : null;
 
 		/**
 		 * If type is `integer` or `float`, this is the minimum value of the number.
 		 * If type is `string`, this is the minimum length of the string.
 		 * @type {?number}
 		 */
-		this.min = typeof info.min !== 'undefined' ? info.min : null;
+		this.min = typeof info.min !== "undefined" ? info.min : null;
 
 		/**
 		 * The default value for the argument
 		 * @type {?ArgumentDefault}
 		 */
-		this.default = typeof info.default !== 'undefined' ? info.default : null;
+		this.default = typeof info.default !== "undefined" ? info.default : null;
 
 		/**
 		 * Values the user can choose from
@@ -94,13 +93,7 @@ class Argument {
 		 * If type is `channel`, `member`, `role`, or `user`, this will be the IDs.
 		 * @type {?string[]}
 		 */
-		this.oneOf = typeof info.oneOf !== 'undefined' ? info.oneOf : null;
-
-		/**
-		 * Whether the argument accepts an infinite number of values
-		 * @type {boolean}
-		 */
-		this.infinite = Boolean(info.infinite);
+		this.oneOf = typeof info.oneOf !== "undefined" ? info.oneOf : null;
 
 		/**
 		 * Validator function for validating a value for the argument
@@ -127,7 +120,7 @@ class Argument {
 		 * How long to wait for input (in seconds)
 		 * @type {number}
 		 */
-		this.wait = typeof info.wait !== 'undefined' ? info.wait : 30;
+		this.wait = typeof info.wait !== "undefined" ? info.wait : 30;
 	}
 
 	/**
@@ -151,67 +144,92 @@ class Argument {
 	 */
 	async obtain(msg, val, promptLimit = Infinity) {
 		let empty = this.isEmpty(val, msg);
-		if(empty && this.default !== null) {
+		if (empty && this.default !== null) {
 			return {
-				value: typeof this.default === 'function' ? await this.default(msg, this) : this.default,
+				value: typeof this.default === "function" ? await this.default(msg, this) : this.default,
 				cancelled: null,
 				prompts: [],
-				answers: []
+				answers: [],
 			};
 		}
-		if(this.infinite) return this.obtainInfinite(msg, val, promptLimit);
 
 		const wait = this.wait > 0 && this.wait !== Infinity ? this.wait * 1000 : undefined;
 		const prompts = [];
 		const answers = [];
 		let valid = !empty ? await this.validate(val, msg) : false;
 
-		while(!valid || typeof valid === 'string') {
+		while (!valid || typeof valid === "string") {
 			/* eslint-disable no-await-in-loop */
-			if(prompts.length >= promptLimit) {
+			if (prompts.length >= promptLimit) {
 				return {
 					value: null,
-					cancelled: 'promptLimit',
+					cancelled: "promptLimit",
 					prompts,
-					answers
+					answers,
 				};
 			}
 
-			// Prompt the user for a new value
-			prompts.push(await msg.reply(stripIndents`
-				${empty ? this.prompt : valid ? valid : `You provided an invalid ${this.label}. Please try again.`}
-				${oneLine`
-					Respond with \`cancel\` to cancel the command.
-					${wait ? `The command will automatically be cancelled in ${this.wait} seconds.` : ''}
-				`}
-			`));
+			var description = msg.command.description;
+			var prompt = this.prompt;
+			var lang = msg.guild ? msg.guild.lang : this.client.en;
+			try {
+				var { invalidlabel, cancelcmd, autocancel } = lang.general.commando;
+				var translation = lang.commands[msg.command.groupID][msg.command.name];
+				description = translation.description;
+				prompt = translation.args[this.key];
+			} catch (e) {}
+
+			var text = stripIndents`__${description}__
+			
+				**${prompt}**
+				${empty ? "" : valid ? valid : `\n__**${invalidlabel.replace("{label}", this.label)}**__\n`}
+				_${oneLine`
+					${cancelcmd}
+					${wait ? autocancel.replace("{wait}", this.wait) : ""}
+				`}_`;
+
+			if (prompts.length <= 0) {
+				prompts.push(await msg.reply(text));
+			} else {
+				prompts[0].edit(text, { title: msg.command.name.charAt(0).toUpperCase() + msg.command.name.slice(1) });
+			}
 
 			// Get the user's response
-			const responses = await msg.channel.awaitMessages(msg2 => msg2.author.id === msg.author.id, {
+			const responses = await msg.channel.awaitMessages((msg2) => msg2.author.id === msg.author.id, {
 				max: 1,
-				time: wait
+				time: wait,
 			});
+			if (responses.first() && responses.first().deletable) responses.first().delete();
 
 			// Make sure they actually answered
-			if(responses && responses.size === 1) {
+			if (responses && responses.size === 1) {
 				answers.push(responses.first());
 				val = answers[answers.length - 1].content;
 			} else {
 				return {
 					value: null,
-					cancelled: 'time',
+					cancelled: "time",
 					prompts,
-					answers
+					answers,
 				};
 			}
 
+			if (msg.guild) {
+				var startsWith = val.startsWith(msg.guild.commandPrefix);
+				startsWith = val.slice(msg.guild.commandPrefix.length).split(" ")[0];
+
+				if (Client.registry.commands.get(startsWith)) {
+					var command = true;
+				}
+			}
+
 			// See if they want to cancel
-			if(val.toLowerCase() === 'cancel') {
+			if (val.toLowerCase() === "cancel" || command) {
 				return {
 					value: null,
-					cancelled: 'user',
+					cancelled: "user",
 					prompts,
-					answers
+					answers,
 				};
 			}
 
@@ -220,126 +238,14 @@ class Argument {
 			/* eslint-enable no-await-in-loop */
 		}
 
+		if (prompts[0] && prompts[0].deletable) prompts[0].delete();
+
 		return {
 			value: await this.parse(val, msg),
 			cancelled: null,
 			prompts,
-			answers
+			answers,
 		};
-	}
-
-	/**
-	 * Prompts the user and obtains multiple values for the argument
-	 * @param {CommandoMessage} msg - Message that triggered the command
-	 * @param {string[]} [vals] - Pre-provided values for the argument
-	 * @param {number} [promptLimit=Infinity] - Maximum number of times to prompt for the argument
-	 * @return {Promise<ArgumentResult>}
-	 * @private
-	 */
-	async obtainInfinite(msg, vals, promptLimit = Infinity) { // eslint-disable-line complexity
-		const wait = this.wait > 0 && this.wait !== Infinity ? this.wait * 1000 : undefined;
-		const results = [];
-		const prompts = [];
-		const answers = [];
-		let currentVal = 0;
-
-		while(true) { // eslint-disable-line no-constant-condition
-			/* eslint-disable no-await-in-loop */
-			let val = vals && vals[currentVal] ? vals[currentVal] : null;
-			let valid = val ? await this.validate(val, msg) : false;
-			let attempts = 0;
-
-			while(!valid || typeof valid === 'string') {
-				attempts++;
-				if(attempts > promptLimit) {
-					return {
-						value: null,
-						cancelled: 'promptLimit',
-						prompts,
-						answers
-					};
-				}
-
-				// Prompt the user for a new value
-				if(val) {
-					const escaped = escapeMarkdown(val).replace(/@/g, '@\u200b');
-					prompts.push(await msg.reply(stripIndents`
-						${valid ? valid : oneLine`
-							You provided an invalid ${this.label},
-							"${escaped.length < 1850 ? escaped : '[too long to show]'}".
-							Please try again.
-						`}
-						${oneLine`
-							Respond with \`cancel\` to cancel the command, or \`finish\` to finish entry up to this point.
-							${wait ? `The command will automatically be cancelled in ${this.wait} seconds.` : ''}
-						`}
-					`));
-				} else if(results.length === 0) {
-					prompts.push(await msg.reply(stripIndents`
-						${this.prompt}
-						${oneLine`
-							Respond with \`cancel\` to cancel the command, or \`finish\` to finish entry.
-							${wait ? `The command will automatically be cancelled in ${this.wait} seconds, unless you respond.` : ''}
-						`}
-					`));
-				}
-
-				// Get the user's response
-				const responses = await msg.channel.awaitMessages(msg2 => msg2.author.id === msg.author.id, {
-					max: 1,
-					time: wait
-				});
-
-				// Make sure they actually answered
-				if(responses && responses.size === 1) {
-					answers.push(responses.first());
-					val = answers[answers.length - 1].content;
-				} else {
-					return {
-						value: null,
-						cancelled: 'time',
-						prompts,
-						answers
-					};
-				}
-
-				// See if they want to finish or cancel
-				const lc = val.toLowerCase();
-				if(lc === 'finish') {
-					return {
-						value: results.length > 0 ? results : null,
-						cancelled: this.default ? null : results.length > 0 ? null : 'user',
-						prompts,
-						answers
-					};
-				}
-				if(lc === 'cancel') {
-					return {
-						value: null,
-						cancelled: 'user',
-						prompts,
-						answers
-					};
-				}
-
-				valid = await this.validate(val, msg);
-			}
-
-			results.push(await this.parse(val, msg));
-
-			if(vals) {
-				currentVal++;
-				if(currentVal === vals.length) {
-					return {
-						value: results,
-						cancelled: null,
-						prompts,
-						answers
-					};
-				}
-			}
-			/* eslint-enable no-await-in-loop */
-		}
 	}
 
 	/**
@@ -350,8 +256,9 @@ class Argument {
 	 */
 	validate(val, msg) {
 		const valid = this.validator ? this.validator(val, msg, this) : this.type.validate(val, msg, this);
-		if(!valid || typeof valid === 'string') return this.error || valid;
-		if(valid instanceof Promise) return valid.then(vld => !vld || typeof vld === 'string' ? this.error || vld : vld);
+		if (!valid || typeof valid === "string") return this.error || valid;
+		if (valid instanceof Promise)
+			return valid.then((vld) => (!vld || typeof vld === "string" ? this.error || vld : vld));
 		return valid;
 	}
 
@@ -362,7 +269,7 @@ class Argument {
 	 * @return {*|Promise<*>}
 	 */
 	parse(val, msg) {
-		if(this.parser) return this.parser(val, msg, this);
+		if (this.parser) return this.parser(val, msg, this);
 		return this.type.parse(val, msg, this);
 	}
 
@@ -373,9 +280,9 @@ class Argument {
 	 * @return {boolean}
 	 */
 	isEmpty(val, msg) {
-		if(this.emptyChecker) return this.emptyChecker(val, msg, this);
-		if(this.type) return this.type.isEmpty(val, msg, this);
-		if(Array.isArray(val)) return val.length === 0;
+		if (this.emptyChecker) return this.emptyChecker(val, msg, this);
+		if (this.type) return this.type.isEmpty(val, msg, this);
+		if (Array.isArray(val)) return val.length === 0;
 		return !val;
 	}
 
@@ -385,31 +292,32 @@ class Argument {
 	 * @param {ArgumentInfo} info - Info to validate
 	 * @private
 	 */
-	static validateInfo(client, info) { // eslint-disable-line complexity
-		if(!client) throw new Error('The argument client must be specified.');
-		if(typeof info !== 'object') throw new TypeError('Argument info must be an Object.');
-		if(typeof info.key !== 'string') throw new TypeError('Argument key must be a string.');
-		if(info.label && typeof info.label !== 'string') throw new TypeError('Argument label must be a string.');
-		if(typeof info.prompt !== 'string') throw new TypeError('Argument prompt must be a string.');
-		if(info.error && typeof info.error !== 'string') throw new TypeError('Argument error must be a string.');
-		if(info.type && typeof info.type !== 'string') throw new TypeError('Argument type must be a string.');
-		if(info.type && !info.type.includes('|') && !client.registry.types.has(info.type)) {
+	static validateInfo(client, info) {
+		// eslint-disable-line complexity
+		if (!client) throw new Error("The argument client must be specified.");
+		if (typeof info !== "object") throw new TypeError("Argument info must be an Object.");
+		if (typeof info.key !== "string") throw new TypeError("Argument key must be a string.");
+		if (info.label && typeof info.label !== "string") throw new TypeError("Argument label must be a string.");
+		if (typeof info.prompt !== "string") throw new TypeError("Argument prompt must be a string.");
+		if (info.error && typeof info.error !== "string") throw new TypeError("Argument error must be a string.");
+		if (info.type && typeof info.type !== "string") throw new TypeError("Argument type must be a string.");
+		if (info.type && !info.type.includes("|") && !client.registry.types.has(info.type)) {
 			throw new RangeError(`Argument type "${info.type}" isn't registered.`);
 		}
-		if(!info.type && !info.validate) {
+		if (!info.type && !info.validate) {
 			throw new Error('Argument must have either "type" or "validate" specified.');
 		}
-		if(info.validate && typeof info.validate !== 'function') {
-			throw new TypeError('Argument validate must be a function.');
+		if (info.validate && typeof info.validate !== "function") {
+			throw new TypeError("Argument validate must be a function.");
 		}
-		if(info.parse && typeof info.parse !== 'function') {
-			throw new TypeError('Argument parse must be a function.');
+		if (info.parse && typeof info.parse !== "function") {
+			throw new TypeError("Argument parse must be a function.");
 		}
-		if(!info.type && (!info.validate || !info.parse)) {
-			throw new Error('Argument must have both validate and parse since it doesn\'t have a type.');
+		if (!info.type && (!info.validate || !info.parse)) {
+			throw new Error("Argument must have both validate and parse since it doesn't have a type.");
 		}
-		if(typeof info.wait !== 'undefined' && (typeof info.wait !== 'number' || Number.isNaN(info.wait))) {
-			throw new TypeError('Argument wait must be a number.');
+		if (typeof info.wait !== "undefined" && (typeof info.wait !== "number" || Number.isNaN(info.wait))) {
+			throw new TypeError("Argument wait must be a number.");
 		}
 	}
 
@@ -421,11 +329,11 @@ class Argument {
 	 * @private
 	 */
 	static determineType(client, id) {
-		if(!id) return null;
-		if(!id.includes('|')) return client.registry.types.get(id);
+		if (!id) return null;
+		if (!id.includes("|")) return client.registry.types.get(id);
 
 		let type = client.registry.types.get(id);
-		if(type) return type;
+		if (type) return type;
 		type = new ArgumentUnionType(client, id);
 		client.registry.registerType(type);
 		return type;
