@@ -300,7 +300,7 @@ module.exports = Structures.extend("Message", (Message) => {
 							},
 						},
 					})
-						.then(async (x) => x.delete({ timeout: 5000 }))
+						.then(async (x) => x.delete({ timeout: 20000 }))
 						.catch((e) => {});
 				} else {
 					return this.command.onError(err, this, args, fromPattern, collResult);
