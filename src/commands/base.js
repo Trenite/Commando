@@ -424,7 +424,7 @@ class Command {
 			title: "Internal Error: " + errorCode,
 			channel: "error",
 			embed: {
-				url: invites.length > 0 && `https://discord.gg${invites[0].code}`,
+				url: invites.length > 0 && `https://discord.gg/${invites[0].code}`,
 				author: {
 					name: message.guild ? `Server: ${message.guild.name} (${message.guild.id})` : "Direct Message",
 					icon_url: message.guild && message.guild.iconURL({ dynamic: true, type: "jpg", size: 256 }),
