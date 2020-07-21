@@ -344,10 +344,10 @@ class Command {
 			switch (reason) {
 				case "guildOnly":
 					title = guildonly;
-					throw `\`${this.name}\` command must be used in a server channel.`;
+					throw guildonlydesc.replace("{name}", this.name);
 				case "nsfw":
 					title = notnsfw;
-					throw guildonlydesc.replace("{name}", this.name);
+					throw notnsfwdesc.replace("{name}", this.name);
 				case "permission": {
 					title = nopermission;
 					if (data.response) throw data.response;
