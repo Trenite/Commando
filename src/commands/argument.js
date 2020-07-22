@@ -171,7 +171,7 @@ class Argument {
 
 			var description = msg.command.description;
 			var prompt = this.prompt;
-			var lang = msg.guild ? msg.guild.lang : this.client.en;
+			var lang = msg.guild ? msg.guild.lang : msg.client.en;
 			try {
 				var { invalidlabel, cancelcmd, autocancel } = lang.general.commando;
 				var translation = lang.commands[msg.command.groupID][msg.command.name];
