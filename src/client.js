@@ -217,7 +217,7 @@ class CommandoClient extends discord.Client {
 			opts = { title: opts };
 		}
 
-		var lang = this.guild ? this.guild.lang : this.en;
+		var lang = this.guild ? this.guild.lang : this.client.en;
 
 		var author = this.guild
 			? {
