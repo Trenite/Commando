@@ -252,10 +252,10 @@ class CommandoClient extends discord.Client {
 			} catch (error) {}
 		}
 
-		var invoker = this.client.user.tag + wait + ` | support.trenite.tk`;
+		var invoker = this.client.user.tag + wait; //+ ` | support.trenite.tk`;
 		var footerIcon = this.client.user.displayAvatarURL({ dynamic: true, size: 256, format: "jpg" });
 		if (this.author) {
-			invoker = lang.general.commando.invokedby.replace("{user}", this.author.tag) + ` | support.trenite.tk`;
+			invoker = lang.general.commando.invokedby.replace("{user}", this.author.tag); //+ ` | support.trenite.tk`;
 			footerIcon = this.author.displayAvatarURL({ dynamic: true, size: 256, format: "jpg" });
 			if (
 				this &&
