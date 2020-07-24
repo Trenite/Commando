@@ -243,7 +243,7 @@ class CommandoClient extends discord.Client {
 		if (opts.title) {
 			title = opts.title;
 		} else if (this.command) {
-			var cmdlang = this.command.lang(this.guild || { lang: this.en });
+			var cmdlang = this.command.lang(lang);
 			var name = cmdlang.name || this.command.name;
 			title = name.charAt(0).toUpperCase() + name.slice(1);
 		} else {
