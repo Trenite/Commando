@@ -299,9 +299,7 @@ module.exports = Structures.extend("Message", (Message) => {
 								icon_url: this.client.savedEmojis.error.url,
 							},
 						},
-					})
-						.then(async (x) => x.delete({ timeout: 20000 }))
-						.catch((e) => {});
+					}).catch((e) => {});
 				} else {
 					return this.command.onError(err, this, args, fromPattern, collResult);
 				}
