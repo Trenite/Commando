@@ -248,6 +248,7 @@ class Command {
 	}
 
 	lang(guild) {
+		if (!guild) guild = this.client;
 		try {
 			return guild.lang.commands[this.groupID][this.name] || {};
 		} catch (error) {
