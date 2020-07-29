@@ -535,6 +535,10 @@ module.exports = Structures.extend("Message", (Message) => {
 			}
 		}
 
+		get link() {
+			return `https://discord.com/channels/@me${this.guild && `/${this.guild.id}`}/${this.channel.id}/${this.id}`;
+		}
+
 		/**
 		 * Parses an argument string into an array of arguments
 		 * @param {string} argString - The argument string to parse
