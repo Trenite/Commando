@@ -378,6 +378,7 @@ class CommandoRegistry {
 
 	registerDefaultEvents() {
 		this.registerEventsIn(path.join(__dirname, "events"));
+		return this;
 	}
 
 	/**
