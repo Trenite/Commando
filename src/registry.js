@@ -313,6 +313,7 @@ class CommandoRegistry {
 		this.registerDefaultTypes();
 		this.registerDefaultGroups();
 		this.registerDefaultCommands();
+		this.registerDefaultEvents();
 		return this;
 	}
 
@@ -373,6 +374,10 @@ class CommandoRegistry {
 			if (commands.unload) this.registerCommand(require("./commands/commands/unload"));
 		}
 		return this;
+	}
+
+	registerDefaultEvents() {
+		this.registerEventsIn(path.join(__dirname, "events"));
 	}
 
 	/**
