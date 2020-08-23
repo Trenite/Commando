@@ -534,7 +534,6 @@ module.exports = Structures.extend("Message", (Message) => {
 				}
 			}
 		}
-
 		get link() {
 			return `https://discord.com/channels/@me${this.guild && `/${this.guild.id}`}/${this.channel.id}/${this.id}`;
 		}

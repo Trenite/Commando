@@ -616,7 +616,7 @@ function commandFilterExact(search, msg) {
 			var category = msg.guild.lang.commands[cmd.groupID];
 			if (category) {
 				var command = category[cmd.name];
-				if (command) {
+				if (command && command.name) {
 					langCmd =
 						command.name === search || (command.aliases && command.aliases.some((ali) => ali === search));
 				}
@@ -639,7 +639,7 @@ function commandFilterInexact(search, msg) {
 			var category = msg.guild.lang.commands[cmd.groupID];
 			if (category) {
 				var command = category[cmd.name];
-				if (command) {
+				if (command && command.name) {
 					langCmd =
 						command.name.includes(search) ||
 						(command.aliases && command.aliases.some((ali) => ali.includes(search)));
