@@ -217,7 +217,7 @@ class CommandoClient extends discord.Client {
 			opts = { title: opts };
 		}
 
-		if (options.noEmbed) return options;
+		if (options && options.noEmbed) return options;
 
 		var lang = this.guild ? this.guild.lang : this.client.en;
 
