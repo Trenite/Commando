@@ -29,11 +29,11 @@ module.exports = class EvalCommand extends Command {
 		Object.defineProperty(this, "_sensitivePattern", { value: null, configurable: true });
 	}
 
-	run(msg, args) {
+	async run(msg, args) {
 		// Make a bunch of helpers
 		/* eslint-disable no-unused-vars */
 		const message = msg;
-		const client = msg.client;
+		const { client, guild } = msg;
 		const lastResult = this.lastResult;
 		const doReply = (val) => {
 			if (val instanceof Error) {
@@ -53,7 +53,7 @@ module.exports = class EvalCommand extends Command {
 		let hrDiff;
 		try {
 			const hrStart = process.hrtime();
-			this.lastResult = eval(args.script);
+			this.lastResult = await eval(args.script);
 			hrDiff = process.hrtime(hrStart);
 		} catch (err) {
 			return msg.reply(`Error while evaluating: \`${err}\``);
@@ -77,7 +77,9 @@ module.exports = class EvalCommand extends Command {
 		const split = inspected.split("\n");
 		const last = inspected.length - 1;
 		const prependPart =
-			inspected[0] !== "{" && inspected[0] !== "[" && inspected[0] !== "'" ? split[0] : inspected[0];
+			inspected[0] !== "{" && inspected[0] !== "[" && inspected[0] !== "'"
+				? split[0]
+				: inspected[0];
 		const appendPart =
 			inspected[last] !== "}" && inspected[last] !== "]" && inspected[last] !== "'"
 				? split[split.length - 1]
@@ -112,7 +114,10 @@ module.exports = class EvalCommand extends Command {
 			const client = this.client;
 			let pattern = "";
 			if (client.token) pattern += escapeRegex(client.token);
-			Object.defineProperty(this, "_sensitivePattern", { value: new RegExp(pattern, "gi"), configurable: false });
+			Object.defineProperty(this, "_sensitivePattern", {
+				value: new RegExp(pattern, "gi"),
+				configurable: false,
+			});
 		}
 		return this._sensitivePattern;
 	}
