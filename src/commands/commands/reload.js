@@ -37,15 +37,20 @@ module.exports = class ReloadCommandCommand extends Command {
 		if (this.client.shard) {
 			try {
 				await this.client.shard.broadcastEval(`
-					if(this.shard.id !== ${this.client.shard.id}) {
-						this.registry.${isCmd ? "commands" : "groups"}.get('${isCmd ? cmdOrGrp.name : cmdOrGrp.id}').reload();
+					const ids = [${this.client.shard.ids.join(",")}];
+					if(!this.shard.ids.some(id => ids.includes(id))) {
+						this.registry.${isCmd ? "commands" : "groups"}.get('${
+					isCmd ? cmdOrGrp.name : cmdOrGrp.id
+				}').reload();
 					}
 				`);
 			} catch (err) {
 				this.client.emit("warn", `Error when broadcasting command reload to other shards`);
 				this.client.emit("error", err);
 				if (isCmd) {
-					await msg.reply(`Reloaded \`${cmdOrGrp.name}\` command, but failed to reload on other shards.`);
+					await msg.reply(
+						`Reloaded \`${cmdOrGrp.name}\` command, but failed to reload on other shards.`
+					);
 				} else {
 					await msg.reply(
 						`Reloaded all of the commands in the \`${cmdOrGrp.name}\` group, but failed to reload on other shards.`
@@ -56,7 +61,9 @@ module.exports = class ReloadCommandCommand extends Command {
 		}
 
 		if (isCmd) {
-			await msg.reply(`Reloaded \`${cmdOrGrp.name}\` command${this.client.shard ? " on all shards" : ""}.`);
+			await msg.reply(
+				`Reloaded \`${cmdOrGrp.name}\` command${this.client.shard ? " on all shards" : ""}.`
+			);
 		} else {
 			await msg.reply(
 				`Reloaded all of the commands in the \`${cmdOrGrp.name}\` group${
